@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍳 Freír un Huevo — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yolk: #F4A11A;
+    --yolk-dark: #C97A0A;
+    --orange: #E85D04;
+    --red: #C1121F;
+    --cream: #FFF8F0;
+    --brown: #5C3317;
+    --pan-dark: #1a1a1a;
+    --pan-mid: #2d2d2d;
+    --pan-shine: #444;
+    --white-clear: rgba(255,255,255,0);
+    --white-cooked: rgba(255,255,255,0.97);
+    --green-ok: #52B788;
+    --blue-cool: #4CC9F0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1C0A00;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Kitchen background */
+  .kitchen-bg {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255,120,0,0.15) 0%, transparent 60%),
+      linear-gradient(180deg, #2d1400 0%, #1C0A00 100%);
+    z-index: 0;
+  }
+
+  /* Tile pattern */
+  .kitchen-bg::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+  }
+
+  .game-wrapper {
+    position: relative; z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    max-width: 520px;
+    padding: 16px;
+  }
+
+  /* HEADER */
+  .game-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .game-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 28px;
+    color: var(--yolk);
+    text-shadow: 0 2px 8px rgba(244,161,26,0.4);
+    letter-spacing: 1px;
+  }
+
+  .score-display {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: #fff;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 6px 16px;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .meter {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .meter-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .meter-bar {
+    height: 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .meter-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.2s ease, background 0.3s ease;
+  }
+
+  .meter-fill.temp {
+    background: linear-gradient(90deg, #4CC9F0, #F9C74F, #E85D04, #C1121F);
+  }
+
+  .meter-fill.cook {
+    background: linear-gradient(90deg, #fff5e6, #fff, #F9C74F, #8B4513);
+  }
+
+  .meter-fill.oil {
+    background: linear-gradient(90deg, #F4D03F, #E67E22);
+  }
+
+  .temp-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    color: #fff;
+    text-align: right;
+  }
+
+  /* EGG STATE BADGE */
+  .egg-state-badge {
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    transition: all 0.4s ease;
+    border: 2px solid transparent;
+    text-align: center;
+  }
+
+  /* PAN CANVAS AREA */
+  .pan-area {
+    position: relative;
+    width: 340px;
+    height: 340px;
+    margin: 0 auto;
+  }
+
+  canvas#gameCanvas {
+    width: 340px;
+    height: 340px;
+    border-radius: 50%;
+    display: block;
+  }
+
+  /* SMOKE */
+  .smoke-container {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    pointer-events: none;
+  }
+
+  .smoke-puff {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(180,180,180,0.25);
+    animation: smokePuff 2s ease-out infinite;
+    bottom: 0;
+  }
+
+  @keyframes smokePuff {
+    0%   { transform: translateY(0) scale(0.3); opacity: 0.6; }
+    100% { transform: translateY(-80px) scale(1.8); opacity: 0; }
+  }
+
+  /* CONTROLS */
+  .controls {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .burner-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 12px 16px;
+  }
+
+  .burner-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .burner-slider-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .burner-slider-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #4CC9F0, #F9C74F, #E85D04, #C1121F);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--orange);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    cursor: pointer;
+  }
+
+  .action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .btn-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 8px;
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .btn-action .btn-icon { font-size: 24px; }
+
+  .btn-action:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); transform: translateY(-2px); }
+  .btn-action:active { transform: scale(0.95); }
+
+  .btn-action.oil    { border-color: rgba(244,212,26,0.4); }
+  .btn-action.crack  { border-color: rgba(255,255,255,0.3); }
+  .btn-action.serve  { border-color: rgba(82,183,136,0.5); background: rgba(82,183,136,0.1); }
+  .btn-action.serve:hover { background: rgba(82,183,136,0.2); }
+  .btn-action.restart { border-color: rgba(76,201,240,0.4); background: rgba(76,201,240,0.07); }
+
+  .btn-action:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* RESULT OVERLAY */
+  .result-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+
+  .result-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .result-card {
+    background: #1a0a00;
+    border: 3px solid var(--yolk);
+    border-radius: 24px;
+    padding: 40px 48px;
+    text-align: center;
+    max-width: 380px;
+    width: 90%;
+    transform: scale(0.8);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 0 60px rgba(244,161,26,0.2);
+  }
+
+  .result-overlay.show .result-card {
+    transform: scale(1);
+  }
+
+  .result-emoji { font-size: 72px; display: block; margin-bottom: 16px; }
+
+  .result-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+
+  .result-subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 28px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .result-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .result-score-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+  }
+
+  .result-score-label {
+    font-weight: 700;
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .result-score-val {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: var(--yolk);
+  }
+
+  .result-total {
+    font-family: 'Fredoka One', cursive;
+    font-size: 48px;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .stars {
+    font-size: 32px;
+    margin-bottom: 24px;
+    letter-spacing: 4px;
+  }
+
+  .btn-play-again {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    padding: 14px 36px;
+    border: none;
+    border-radius: 50px;
+    background: var(--yolk);
+    color: #1C0A00;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(244,161,26,0.4);
+  }
+
+  .btn-play-again:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(244,161,26,0.6); }
+
+  /* TIPS */
+  .tip-bar {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 1px;
+    padding: 6px;
+  }
+
+  /* BUBBLES animation */
+  @keyframes bubble {
+    0%   { transform: translateY(0) scale(1); opacity: 0.8; }
+    100% { transform: translateY(-12px) scale(0.2); opacity: 0; }
+  }
+
+  /* CRACK animation */
+  @keyframes crackShake {
+    0%,100% { transform: rotate(0); }
+    25% { transform: rotate(-4deg); }
+    75% { transform: rotate(4deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="kitchen-bg"></div>
+
+<div class="game-wrapper">
+
+  <!-- Header -->
+  <div class="game-header">
+    <div class="game-title">🍳 Freír un Huevo</div>
+    <div class="score-display" id="scoreDisplay">0 pts</div>
+  </div>
+
+  <!-- Status meters -->
+  <div class="status-bar">
+    <div class="meter">
+      <div class="meter-label">Temperatura</div>
+      <div class="meter-bar">
+        <div class="meter-fill temp" id="tempBar" style="width:0%"></div>
+      </div>
+      <div class="temp-value" id="tempValue">20°C</div>
+    </div>
+    <div class="meter">
+      <div class="meter-label">Cocción</div>
+      <div class="meter-bar">
+        <div class="meter-fill cook" id="cookBar" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="meter">
+      <div class="meter-label">Aceite</div>
+      <div class="meter-bar">
+        <div class="meter-fill oil" id="oilBar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Egg state -->
+  <div class="egg-state-badge" id="stateBadge">🥚 Rompe el huevo para empezar</div>
+
+  <!-- Game Canvas -->
+  <div class="pan-area">
+    <canvas id="gameCanvas" width="340" height="340"></canvas>
+    <div class="smoke-container" id="smokeContainer"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="burner-control">
+      <div class="burner-icon">🔥</div>
+      <div class="burner-slider-wrap">
+        <div class="burner-slider-label">Potencia del fuego</div>
+        <input type="range" id="burnerSlider" min="0" max="100" value="0">
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn-action oil" id="btnOil">
+        <span class="btn-icon">🫙</span>
+        Aceite
+      </button>
+      <button class="btn-action crack" id="btnCrack">
+        <span class="btn-icon">🥚</span>
+        Cascar
+      </button>
+      <button class="btn-action serve" id="btnServe" disabled>
+        <span class="btn-icon">🍽️</span>
+        Servir
+      </button>
+    </div>
+
+    <button class="btn-action restart" id="btnRestart" style="width:100%; flex-direction:row; gap:8px; justify-content:center;">
+      <span class="btn-icon" style="font-size:18px">🔄</span>
+      Reiniciar
+    </button>
+  </div>
+
+  <div class="tip-bar" id="tipBar">💡 Añade aceite antes de calentar para mejor cocción</div>
+</div>
+
+<!-- Result Overlay -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-card">
+    <span class="result-emoji" id="resultEmoji">🍳</span>
+    <div class="result-title" id="resultTitle">¡Perfecto!</div>
+    <div class="result-subtitle" id="resultSubtitle">Tu huevo está listo</div>
+    <div class="result-scores">
+      <div class="result-score-row">
+        <span class="result-score-label">🍳 Punto de cocción</span>
+        <span class="result-score-val" id="rCook">--</span>
+      </div>
+      <div class="result-score-row">
+        <span class="result-score-label">🫙 Uso de aceite</span>
+        <span class="result-score-val" id="rOil">--</span>
+      </div>
+      <div class="result-score-row">
+        <span class="result-score-label">🌡️ Control de temperatura</span>
+        <span class="result-score-val" id="rTemp">--</span>
+      </div>
+    </div>
+    <div class="stars" id="resultStars">⭐⭐⭐</div>
+    <div class="result-total" id="resultTotal">100</div>
+    <div class="result-subtitle">puntos totales</div>
+    <br>
+    <button class="btn-play-again" id="btnPlayAgain">¡Otra vez!</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════════
+const STATE = {
+  IDLE:       'idle',
+  CRACKED:    'cracked',
+  COOKING:    'cooking',
+  PERFECT:    'perfect',
+  OVERCOOKED: 'overcooked',
+  BURNED:     'burned',
+  SERVED:     'served',
+};
+
+const TIPS = [
+  "💡 Añade aceite antes de calentar para mejor cocción",
+  "🌡️ Temperatura ideal: entre 160°C y 200°C",
+  "⏳ No te apresures — la paciencia hace el huevo perfecto",
+  "🫙 Ni poco ni mucho aceite: el punto medio es clave",
+  "🔥 Si sale humo, baja el fuego inmediatamente",
+  "🍳 Sirve el huevo cuando la clara esté completamente blanca",
+];
+
+let game = {};
+
+function resetGame() {
+  game = {
+    // Temperature
+    temp: 20,
+    burnerLevel: 0,
+    // Egg
+    eggCracked: false,
+    clearProgress: 0,    // 0–1 clara
+    yolkProgress: 0,     // 0–1 yema
+    // Oil
+    oilLevel: 0,         // 0–1
+    hasOil: false,
+    oilBurned: false,
+    // State
+    state: STATE.IDLE,
+    // Tracking
+    maxTempReached: 0,
+    overcookTime: 0,
+    burnedOil: false,
+    // Visuals
+    bubbles: [],
+    greaseSplats: [],
+    sizzleParticles: [],
+    // Scoring
+    totalScore: 0,
+    // Time
+    gameTime: 0,
+    served: false,
+  };
+  updateUI();
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+const CX = W / 2, CY = H / 2;
+const PAN_R = 155;  // pan radius
+const EGG_R = 80;   // egg clear radius
+const YOLK_R = 32;  // yolk radius
+
+let rafId;
+let lastTime = 0;
+
+// ═══════════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════════
+function gameLoop(timestamp) {
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+  lastTime = timestamp;
+
+  if (!game.served) {
+    update(dt);
+  }
+  render();
+
+  rafId = requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+  game.gameTime += dt;
+
+  // ── Temperature physics ──────────────────────────────────
+  const targetTemp = 20 + (280) * (game.burnerLevel / 100);
+  const heatRate = game.burnerLevel > 0 ? 35 : -18;
+  game.temp += (targetTemp - game.temp) * (1 - Math.exp(-Math.abs(heatRate) * dt / 100)) * Math.sign(targetTemp - game.temp);
+  game.temp = Math.max(20, Math.min(300, game.temp));
+  game.maxTempReached = Math.max(game.maxTempReached, game.temp);
+
+  // ── Oil burning ──────────────────────────────────────────
+  if (game.hasOil && !game.eggCracked && game.temp > 220) {
+    game.oilBurned = true;
+  }
+
+  // ── Egg cooking ──────────────────────────────────────────
+  if (game.eggCracked && game.temp > 95) {
+    const heatFactor = calcHeatFactor(game.temp);
+    const oilMod = game.hasOil ? 1.0 : 1.4; // no oil = cooks unevenly/faster (sticks)
+    game.clearProgress += heatFactor * oilMod * dt * 0.055;
+    game.yolkProgress  += heatFactor * 0.65 * dt * 0.055;
+    game.clearProgress = Math.min(game.clearProgress, 1.5);
+    game.yolkProgress  = Math.min(game.yolkProgress,  1.5);
+  }
+
+  // ── Egg state ────────────────────────────────────────────
+  let newState = game.state;
+  if (!game.eggCracked) {
+    newState = STATE.IDLE;
+  } else if (game.clearProgress >= 1.2) {
+    newState = STATE.BURNED;
+    game.overcookTime += dt;
+  } else if (game.clearProgress >= 1.0) {
+    newState = STATE.OVERCOOKED;
+    game.overcookTime += dt * 0.5;
+  } else if (game.clearProgress >= 0.75) {
+    newState = STATE.PERFECT;
+  } else if (game.clearProgress > 0.01) {
+    newState = STATE.COOKING;
+  } else {
+    newState = STATE.CRACKED;
+  }
+
+  if (newState !== game.state) {
+    game.state = newState;
+  }
+
+  // Serve button enable
+  document.getElementById('btnServe').disabled = (game.state === STATE.IDLE || game.state === STATE.CRACKED || game.served);
+
+  // ── Bubbles ──────────────────────────────────────────────
+  if (game.hasOil && game.temp > 100 && Math.random() < (game.temp - 100) / 150 * dt * 8) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = 30 + Math.random() * 55;
+    game.bubbles.push({
+      x: CX + Math.cos(angle) * r,
+      y: CY + Math.sin(angle) * r,
+      size: 2 + Math.random() * 5,
+      life: 1,
+      speed: 0.8 + Math.random() * 1.5,
+    });
+  }
+
+  // Update bubbles
+  game.bubbles = game.bubbles.filter(b => {
+    b.life -= dt * b.speed;
+    b.y -= dt * 12;
+    b.size *= 0.99;
+    return b.life > 0;
+  });
+
+  // ── Sizzle particles ─────────────────────────────────────
+  if (game.eggCracked && game.temp > 120 && Math.random() < dt * 4) {
+    const angle = Math.PI + Math.random() * Math.PI; // bottom half of egg
+    const r = EGG_R - 5;
+    game.sizzleParticles.push({
+      x: CX + Math.cos(angle) * r * (0.3 + Math.random() * 0.7),
+      y: CY + Math.sin(angle) * r * (0.3 + Math.random() * 0.7),
+      vx: (Math.random() - 0.5) * 30,
+      vy: -20 - Math.random() * 40,
+      life: 1,
+      size: 1 + Math.random() * 3,
+    });
+  }
+
+  game.sizzleParticles = game.sizzleParticles.filter(p => {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 40 * dt;
+    p.life -= dt * 3;
+    return p.life > 0;
+  });
+
+  // ── Update UI ────────────────────────────────────────────
+  updateUI();
+
+  // ── Smoke ────────────────────────────────────────────────
+  updateSmoke();
+}
+
+function calcHeatFactor(temp) {
+  if (temp < 95) return 0;
+  if (temp > 230) return 3;
+  return Math.pow((temp - 95) / 135, 0.7) * 1.6;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function render() {
+  ctx.clearRect(0, 0, W, H);
+
+  drawPan();
+  drawOil();
+  if (game.eggCracked) {
+    drawEggClear();
+    drawYolk();
+  }
+  drawBubbles();
+  drawSizzle();
+  drawPanShine();
+}
+
+function drawPan() {
+  // Pan outer rim
+  const rimGrad = ctx.createRadialGradient(CX-30, CY-30, PAN_R*0.5, CX, CY, PAN_R);
+  rimGrad.addColorStop(0, '#555');
+  rimGrad.addColorStop(0.5, '#222');
+  rimGrad.addColorStop(1, '#111');
+
+  ctx.beginPath();
+  ctx.arc(CX, CY, PAN_R, 0, Math.PI*2);
+  ctx.fillStyle = rimGrad;
+  ctx.fill();
+
+  // Inner pan cooking surface
+  const innerGrad = ctx.createRadialGradient(CX-20, CY-20, 5, CX, CY, PAN_R-14);
+  innerGrad.addColorStop(0, '#3a3a3a');
+  innerGrad.addColorStop(0.6, '#252525');
+  innerGrad.addColorStop(1, '#1a1a1a');
+
+  ctx.beginPath();
+  ctx.arc(CX, CY, PAN_R-14, 0, Math.PI*2);
+  ctx.fillStyle = innerGrad;
+  ctx.fill();
+
+  // Heat glow from below
+  if (game.burnerLevel > 0) {
+    const alpha = (game.burnerLevel / 100) * 0.35;
+    const glowGrad = ctx.createRadialGradient(CX, CY+20, 0, CX, CY, PAN_R);
+    glowGrad.addColorStop(0, `rgba(255,80,0,${alpha})`);
+    glowGrad.addColorStop(0.5, `rgba(255,50,0,${alpha*0.4})`);
+    glowGrad.addColorStop(1, 'rgba(255,0,0,0)');
+
+    ctx.beginPath();
+    ctx.arc(CX, CY, PAN_R-14, 0, Math.PI*2);
+    ctx.fillStyle = glowGrad;
+    ctx.fill();
+  }
+}
+
+function drawOil() {
+  if (!game.hasOil || game.oilLevel <= 0) return;
+
+  const oilAlpha = game.oilLevel * 0.55;
+  const oilColor = game.oilBurned
+    ? `rgba(80,40,0,${oilAlpha})`
+    : `rgba(220,180,30,${oilAlpha})`;
+
+  ctx.beginPath();
+  ctx.ellipse(CX, CY+10, PAN_R-22, (PAN_R-22)*0.18, 0, 0, Math.PI*2);
+  ctx.fillStyle = oilColor;
+  ctx.fill();
+
+  // Shine on oil
+  if (!game.oilBurned) {
+    ctx.beginPath();
+    ctx.ellipse(CX-20, CY+5, 25, 6, -0.3, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,200,0.25)';
+    ctx.fill();
+  }
+}
+
+function drawEggClear() {
+  const p = Math.min(game.clearProgress, 1.5);
+
+  // Color transition: transparent → white → yellow → brown → black
+  let r, g, b, a;
+  if (p < 0.15) {
+    // transparent start
+    a = p / 0.15 * 0.6;
+    r = 255; g = 255; b = 240;
+  } else if (p < 0.65) {
+    // white cooking
+    const t = (p - 0.15) / 0.5;
+    a = 0.6 + t * 0.4;
+    r = 255; g = 255; b = Math.round(240 - t * 30);
+  } else if (p < 1.0) {
+    // golden/perfect
+    const t = (p - 0.65) / 0.35;
+    a = 1;
+    r = 255; g = Math.round(255 - t * 60); b = Math.round(210 - t * 100);
+  } else if (p < 1.2) {
+    // overcooked — brown
+    const t = (p - 1.0) / 0.2;
+    a = 1;
+    r = Math.round(255 - t * 100); g = Math.round(195 - t * 80); b = Math.round(110 - t * 80);
+  } else {
+    // burned — dark brown/black
+    const t = Math.min((p - 1.2) / 0.3, 1);
+    a = 1;
+    r = Math.round(155 - t * 120); g = Math.round(115 - t * 100); b = Math.round(30 - t * 20);
+  }
+
+  // Organic egg shape using multiple ellipses
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(CX, CY+5, EGG_R, EGG_R * 0.82, 0, 0, Math.PI*2);
+  ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+  ctx.fill();
+
+  // Edge darkening when overcooked
+  if (p > 0.85) {
+    const edgeAlpha = (p - 0.85) * 2;
+    const edgeGrad = ctx.createRadialGradient(CX, CY+5, EGG_R*0.5, CX, CY+5, EGG_R);
+    edgeGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    edgeGrad.addColorStop(1, `rgba(80,30,0,${Math.min(edgeAlpha, 0.7)})`);
+    ctx.fillStyle = edgeGrad;
+    ctx.fill();
+  }
+
+  // Texture / grain
+  if (p > 0.1) {
+    ctx.globalAlpha = 0.12;
+    for (let i = 0; i < 6; i++) {
+      const tx = CX + (Math.cos(i * 1.1) * EGG_R * 0.5);
+      const ty = CY + 5 + (Math.sin(i * 1.1) * EGG_R * 0.4);
+      ctx.beginPath();
+      ctx.ellipse(tx, ty, 8 + i*3, 5 + i*2, i * 0.5, 0, Math.PI*2);
+      ctx.fillStyle = p > 1 ? '#000' : '#fff';
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+function drawYolk() {
+  const yp = Math.min(game.yolkProgress, 1.5);
+
+  // Yolk color: bright orange-yellow → dull yellow-green (cooked)
+  let yr, yg, yb;
+  if (yp < 0.5) {
+    yr = 244; yg = 161; yb = 26;
+  } else if (yp < 1.0) {
+    const t = (yp - 0.5) / 0.5;
+    yr = 244; yg = Math.round(161 + t * 40); yb = Math.round(26 + t * 20);
+  } else {
+    const t = Math.min((yp - 1.0) / 0.5, 1);
+    yr = Math.round(244 - t * 80); yg = Math.round(201 - t * 50); yb = Math.round(46 - t * 20);
+  }
+
+  // Yolk flattens as it cooks
+  const flatness = 1 - yp * 0.35;
+  const yolkH = YOLK_R * Math.max(flatness, 0.5);
+
+  // Shadow under yolk
+  ctx.beginPath();
+  ctx.ellipse(CX+3, CY+3, YOLK_R+2, yolkH+2, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fill();
+
+  // Yolk body
+  const yolkGrad = ctx.createRadialGradient(CX-8, CY-8, 2, CX, CY, YOLK_R);
+  yolkGrad.addColorStop(0, `rgb(${Math.min(yr+40,255)},${Math.min(yg+30,255)},${Math.min(yb+60,255)})`);
+  yolkGrad.addColorStop(0.6, `rgb(${yr},${yg},${yb})`);
+  yolkGrad.addColorStop(1, `rgb(${Math.max(yr-40,0)},${Math.max(yg-40,0)},${Math.max(yb-10,0)})`);
+
+  ctx.beginPath();
+  ctx.ellipse(CX, CY, YOLK_R, yolkH, 0, 0, Math.PI*2);
+  ctx.fillStyle = yolkGrad;
+  ctx.fill();
+
+  // Yolk specular
+  if (yp < 0.8) {
+    ctx.beginPath();
+    ctx.ellipse(CX-10, CY-10, 10, 7, -0.5, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,200,0.55)';
+    ctx.fill();
+  }
+}
+
+function drawBubbles() {
+  game.bubbles.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,220,80,${b.life * 0.7})`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,240,150,${b.life * 0.4})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+}
+
+function drawSizzle() {
+  game.sizzleParticles.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,200,100,${p.life * 0.8})`;
+    ctx.fill();
+  });
+}
+
+function drawPanShine() {
+  // Rim highlight
+  const rimHL = ctx.createLinearGradient(CX-PAN_R, CY-PAN_R, CX+PAN_R*0.3, CY+PAN_R*0.3);
+  rimHL.addColorStop(0, 'rgba(255,255,255,0.12)');
+  rimHL.addColorStop(0.4, 'rgba(255,255,255,0.04)');
+  rimHL.addColorStop(1, 'rgba(0,0,0,0)');
+
+  ctx.beginPath();
+  ctx.arc(CX, CY, PAN_R, 0, Math.PI*2);
+  ctx.fillStyle = rimHL;
+  ctx.fill();
+
+  // Inner highlight top-left
+  ctx.beginPath();
+  ctx.ellipse(CX-50, CY-50, 40, 20, -0.7, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fill();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI UPDATES
+// ═══════════════════════════════════════════════════════════
+function updateUI() {
+  // Temp bar
+  const tempPct = ((game.temp - 20) / 280) * 100;
+  document.getElementById('tempBar').style.width = tempPct + '%';
+  document.getElementById('tempValue').textContent = Math.round(game.temp) + '°C';
+
+  // Cook bar
+  document.getElementById('cookBar').style.width = Math.min(game.clearProgress / 1.2, 1) * 100 + '%';
+
+  // Oil bar
+  document.getElementById('oilBar').style.width = game.oilLevel * 100 + '%';
+
+  // State badge
+  const badge = document.getElementById('stateBadge');
+  const { text, bg, color } = getStateBadge();
+  badge.textContent = text;
+  badge.style.background = bg;
+  badge.style.color = color;
+  badge.style.borderColor = color + '55';
+
+  // Score live
+  if (!game.served) {
+    const liveScore = calcLiveScore();
+    document.getElementById('scoreDisplay').textContent = liveScore + ' pts';
+  }
+
+  // Tips rotation
+  if (Math.floor(game.gameTime) % 5 === 0) {
+    const tip = TIPS[Math.floor(game.gameTime / 5) % TIPS.length];
+    document.getElementById('tipBar').textContent = tip;
+  }
+}
+
+function getStateBadge() {
+  switch(game.state) {
+    case STATE.IDLE:
+      return { text: '🥚 Rompe el huevo para empezar', bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' };
+    case STATE.CRACKED:
+      if (!game.hasOil) return { text: '⚠️ Añade aceite — el huevo se pegará', bg: 'rgba(232,93,4,0.15)', color: '#F9C74F' };
+      if (game.temp < 80) return { text: '🌡️ Sube la temperatura para cocinar', bg: 'rgba(76,201,240,0.1)', color: '#4CC9F0' };
+      return { text: '🍳 Calentando...', bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' };
+    case STATE.COOKING:
+      if (game.temp > 220) return { text: '🔥 ¡Temperatura muy alta! Baja el fuego', bg: 'rgba(193,18,31,0.2)', color: '#ff6b6b' };
+      return { text: '🍳 Cocinando — la clara se está cuajando', bg: 'rgba(255,200,50,0.1)', color: '#F9C74F' };
+    case STATE.PERFECT:
+      return { text: '✨ ¡Punto perfecto! Sirve ahora', bg: 'rgba(82,183,136,0.2)', color: '#52B788' };
+    case STATE.OVERCOOKED:
+      return { text: '⚠️ Demasiado cocido — sirve ya o se quemará', bg: 'rgba(232,93,4,0.2)', color: '#E85D04' };
+    case STATE.BURNED:
+      return { text: '💀 ¡El huevo se quemó!', bg: 'rgba(193,18,31,0.25)', color: '#ff4444' };
+    default:
+      return { text: '🍳 —', bg: 'transparent', color: '#fff' };
+  }
+}
+
+function calcLiveScore() {
+  if (!game.eggCracked) return 0;
+  const cookScore = getCookScore();
+  const oilScore  = getOilScore();
+  const tempScore = getTempScore();
+  return Math.round((cookScore + oilScore + tempScore) * 0.5);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SMOKE EFFECT
+// ═══════════════════════════════════════════════════════════
+let smokeInterval;
+function updateSmoke() {
+  const smokeContainer = document.getElementById('smokeContainer');
+  const shouldSmoke = game.temp > 200 || game.state === STATE.BURNED;
+
+  if (shouldSmoke && !smokeInterval) {
+    smokeInterval = setInterval(() => {
+      if (!shouldHaveSmoke()) { stopSmoke(); return; }
+      const puff = document.createElement('div');
+      puff.className = 'smoke-puff';
+      const size = 20 + Math.random() * 30;
+      puff.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${10+Math.random()*40}px;
+        animation-delay:${Math.random()*0.5}s;
+        animation-duration:${1.5+Math.random()}s;
+      `;
+      smokeContainer.appendChild(puff);
+      setTimeout(() => puff.remove(), 2500);
+    }, 300);
+  } else if (!shouldSmoke && smokeInterval) {
+    stopSmoke();
+  }
+}
+
+function shouldHaveSmoke() {
+  return game.temp > 200 || game.state === STATE.BURNED;
+}
+
+function stopSmoke() {
+  clearInterval(smokeInterval);
+  smokeInterval = null;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCORING
+// ═══════════════════════════════════════════════════════════
+function getCookScore() {
+  const p = game.clearProgress;
+  const yp = game.yolkProgress;
+  if (p >= 0.75 && p < 1.0 && yp < 0.9) return 40; // perfect
+  if (p >= 1.0  && p < 1.2) return 20; // overcooked
+  if (p >= 1.2)             return 0;  // burned
+  if (p >= 0.5)             return 25; // almost
+  return 10; // raw
+}
+
+function getOilScore() {
+  if (!game.hasOil) return 0;
+  if (game.oilBurned) return 5;
+  if (game.oilLevel > 0.3 && game.oilLevel < 0.75) return 25; // ideal
+  if (game.oilLevel >= 0.75) return 12; // too much
+  return 15; // little
+}
+
+function getTempScore() {
+  const max = game.maxTempReached;
+  if (max > 240) return 0;
+  if (max > 210) return 10;
+  if (max > 160) return 20;
+  return 15;
+}
+
+function getCookLabel() {
+  const p = game.clearProgress;
+  if (p >= 1.2) return 'Quemado 🔥';
+  if (p >= 1.0) return 'Demasiado cocido';
+  if (p >= 0.75) return '¡Perfecto! ✨';
+  if (p >= 0.4) return 'Casi listo';
+  return 'Crudo';
+}
+
+function getResultData() {
+  const cookScore = getCookScore();
+  const oilScore  = getOilScore();
+  const tempScore = getTempScore();
+  const total = cookScore + oilScore + tempScore;
+
+  let emoji, title, subtitle;
+  if (game.state === STATE.BURNED) {
+    emoji = '💀'; title = '¡Se quemó!'; subtitle = 'Intenta bajar la temperatura';
+  } else if (total >= 75) {
+    emoji = '🏆'; title = '¡Perfecto!'; subtitle = '¡Eres todo un chef!';
+  } else if (total >= 50) {
+    emoji = '😊'; title = '¡Bien hecho!'; subtitle = 'Con práctica lo perfeccionarás';
+  } else if (total >= 25) {
+    emoji = '😅'; title = 'Pasable...'; subtitle = '¡Sigue intentándolo!';
+  } else {
+    emoji = '😬'; title = 'Necesitas práctica'; subtitle = 'Todo chef empieza desde cero';
+  }
+
+  const stars = total >= 75 ? '⭐⭐⭐' : total >= 50 ? '⭐⭐' : '⭐';
+
+  return { emoji, title, subtitle, cookScore, oilScore, tempScore, total, stars };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════════
+document.getElementById('btnOil').addEventListener('click', () => {
+  if (game.served) return;
+  if (game.oilLevel < 1) {
+    game.oilLevel = Math.min(game.oilLevel + 0.35, 1);
+    game.hasOil = true;
+    // Flash button
+    const btn = document.getElementById('btnOil');
+    btn.style.borderColor = '#F4D03F';
+    setTimeout(() => btn.style.borderColor = '', 300);
+  }
+});
+
+document.getElementById('btnCrack').addEventListener('click', () => {
+  if (game.served || game.eggCracked) return;
+  game.eggCracked = true;
+  game.state = STATE.CRACKED;
+  const btn = document.getElementById('btnCrack');
+  btn.disabled = true;
+  btn.style.opacity = '0.4';
+  // Shake animation
+  canvas.style.animation = 'crackShake 0.3s ease';
+  setTimeout(() => canvas.style.animation = '', 350);
+});
+
+document.getElementById('btnServe').addEventListener('click', () => {
+  if (game.served || !game.eggCracked) return;
+  game.served = true;
+  stopSmoke();
+
+  const data = getResultData();
+
+  document.getElementById('resultEmoji').textContent = data.emoji;
+  document.getElementById('resultTitle').textContent  = data.title;
+  document.getElementById('resultTitle').style.color  = data.total >= 75 ? '#F4A11A' : data.total >= 50 ? '#52B788' : '#ff6b6b';
+  document.getElementById('resultSubtitle').textContent = data.subtitle;
+  document.getElementById('rCook').textContent = data.cookScore + ' / 40';
+  document.getElementById('rOil').textContent  = data.oilScore  + ' / 25';
+  document.getElementById('rTemp').textContent = data.tempScore + ' / 20';
+  document.getElementById('resultStars').textContent = data.stars;
+  document.getElementById('resultTotal').textContent = data.total;
+  document.getElementById('scoreDisplay').textContent = data.total + ' pts';
+
+  document.getElementById('resultOverlay').classList.add('show');
+});
+
+document.getElementById('btnRestart').addEventListener('click', () => {
+  document.getElementById('resultOverlay').classList.remove('show');
+  stopSmoke();
+  resetGame();
+  document.getElementById('btnCrack').disabled = false;
+  document.getElementById('btnCrack').style.opacity = '';
+});
+
+document.getElementById('btnPlayAgain').addEventListener('click', () => {
+  document.getElementById('resultOverlay').classList.remove('show');
+  stopSmoke();
+  resetGame();
+  document.getElementById('btnCrack').disabled = false;
+  document.getElementById('btnCrack').style.opacity = '';
+});
+
+document.getElementById('burnerSlider').addEventListener('input', e => {
+  game.burnerLevel = parseInt(e.target.value);
+});
+
+// ═══════════════════════════════════════════════════════════
+//  START
+// ═══════════════════════════════════════════════════════════
+resetGame();
+lastTime = performance.now();
+rafId = requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
